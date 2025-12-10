@@ -56,6 +56,22 @@ endif()
 # Enable testing
 enable_testing()
 
+# Generate relations.h using genrelations.sh
+# This script reads files from relations/ directory and generates the header
+file(GLOB RELATION_FILES "${CMAKE_CURRENT_SOURCE_DIR}/relations/*.jsonc")
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/relations.h
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/genrelations.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DEPENDS ${RELATION_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/genrelations.sh
+    COMMENT "Generating relations.h from relations/*.jsonc files"
+)
+
+# Create a custom target for the generated header
+add_custom_target(generate_relations_header
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/relations.h
+)
+
 # Find all test source files
 file(GLOB TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/test_*.c")
 
@@ -66,6 +82,9 @@ foreach(test_source ${TEST_SOURCES})
 
     # Create an executable for this test
     add_executable(${test_name} ${test_source})
+
+    # Ensure relations.h is generated before building this test
+    add_dependencies(${test_name} generate_relations_header)
 
     # Link with tg library
     target_link_libraries(${test_name} PRIVATE tg)
